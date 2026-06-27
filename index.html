@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sharvi Tomar</title>
+  <meta name="description" content="Sharvi Tomar, engineer and researcher, working on mechanistic interpretability and the geometry of representations in language models.">
+
+  <meta property="og:title" content="Sharvi Tomar">
+  <meta property="og:description" content="Engineer and researcher working on mechanistic interpretability and the geometry of representations in language models.">
+  <meta property="og:type" content="website">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400;1,8..60,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ambient layer for the cursor-triggered curve doodles; sits behind all
+       real content (see z-index rules in style.css) and never intercepts clicks -->
+  <div id="cursor-worms" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <div class="wrap">
+      <nav class="site-nav">
+        <a class="wordmark" href="index.html">Sharvi Tomar</a>
+        <span class="links">
+          <a href="blog/index.html">Blog</a>
+        </span>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+
+    <section class="hero">
+      <!-- signature motif: a curved 1D manifold with sampled "place-cell" points -->
+      <svg id="manifold-curve" class="manifold-curve" viewBox="0 0 200 50" width="170" height="42" aria-hidden="true">
+        <path class="draw" d="M4,40 C40,4 70,46 100,18 C130,-6 150,30 196,10" />
+        <circle class="pt" cx="18" cy="34" r="2.2"></circle>
+        <circle class="pt" cx="52" cy="14" r="2.2"></circle>
+        <circle class="pt" cx="92" cy="24" r="2.2"></circle>
+        <circle class="pt" cx="138" cy="9" r="2.2"></circle>
+        <circle class="pt" cx="178" cy="16" r="2.2"></circle>
+      </svg>
+      <script>
+        // Trace the curve in, then pop the sampled points along it in order.
+        // Runs immediately (not deferred) so there's no flash of the static curve first.
+        (function () {
+          var svg = document.getElementById('manifold-curve');
+          if (!svg || !window.matchMedia) return;
+          if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+          var path = svg.querySelector('path.draw');
+          var len = path.getTotalLength();
+
+          svg.classList.add('will-animate');
+          path.style.strokeDasharray = len;
+          path.style.strokeDashoffset = len;
+
+          requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+              svg.classList.add('in-view');
+              path.style.strokeDashoffset = '0';
+            });
+          });
+        })();
+      </script>
+
+      <h1>Sharvi Tomar</h1>
+      <p class="role">engineer + researcher</p>
+
+      <p>
+        I'm an engineer and an independent researcher. I'm curious about how
+        complex systems, neural networks especially, end up representing
+        structure internally: what shape a concept takes inside a model, and
+        why.
+      </p>
+
+      <p>
+        Most of my research time these days goes toward mechanistic
+        interpretability and representation geometry, though the curiosity
+        extends well beyond any one project.
+      </p>
+
+      <p class="links-row">
+        <a href="https://www.linkedin.com/in/sharvi-tomar/">LinkedIn</a> ·
+        <a href="mailto:tomarsharvi24@gmail.com">Email</a>
+      </p>
+    </section>
+
+    <hr class="divider">
+
+    <section>
+      <p class="section-label">currently writing about</p>
+      <p>
+        How transformers represent <em>ordinal</em> quantities, such as
+        bracket depth, indentation level, position in a table, and numeric
+        magnitude, and why some of these end up living on clean, curved,
+        low-dimensional manifolds while others don't.
+      </p>
+      <p class="links-row">
+        <a href="blog/geometry-of-ordinal-representations.html">Read the writeup →</a>
+      </p>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      &copy; 2026 Sharvi Tomar.
+    </div>
+  </footer>
+
+  <script>
+    // Faint curve doodles that trail the cursor on this page, about half the
+    // time the mouse moves enough to trigger one. Purely decorative: sits
+    // behind the text (see #cursor-worms / z-index rules in style.css),
+    // ignores clicks, and turns itself off for reduced-motion or touch.
+    (function () {
+      if (!window.matchMedia) return;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      if (window.matchMedia('(pointer: coarse)').matches) return;
+
+      var layer = document.getElementById('cursor-worms');
+      if (!layer) return;
+
+      var shapes = [
+        'M2,9 C10,1 18,15 26,7 C32,2 38,11 44,5',
+        'M2,5 C9,13 17,1 25,9 C31,14 37,4 44,9',
+        'M2,8 C8,2 16,14 24,6 C30,1 36,12 42,7'
+      ];
+
+      var lastX = null, lastY = null, lastSpawn = 0, active = 0;
+      var MAX_ACTIVE = 8;
+      var MIN_DIST = 22;   // px the mouse must travel before another doodle can spawn
+      var MIN_GAP = 70;    // ms between spawns, even if moving fast
+
+      function spawn(x, y) {
+        if (active >= MAX_ACTIVE) return;
+        active++;
+
+        var w = 36 + Math.random() * 22;
+        var h = w * (18 / 46);
+        var rot = (Math.random() * 30 - 15).toFixed(1);
+        var shape = shapes[Math.floor(Math.random() * shapes.length)];
+
+        var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('viewBox', '0 0 46 18');
+        svg.setAttribute('width', w);
+        svg.setAttribute('height', h);
+        svg.setAttribute('class', 'cursor-worm');
+        svg.style.left = (x - w / 2) + 'px';
+        svg.style.top = (y - h / 2) + 'px';
+        svg.style.setProperty('--rot', rot + 'deg');
+
+        var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', shape);
+        svg.appendChild(path);
+        layer.appendChild(svg);
+
+        var cleanup = function () {
+          svg.removeEventListener('animationend', cleanup);
+          if (svg.parentNode) svg.parentNode.removeChild(svg);
+          active--;
+        };
+        svg.addEventListener('animationend', cleanup);
+        setTimeout(cleanup, 1500); // safety net if animationend never fires
+      }
+
+      window.addEventListener('mousemove', function (e) {
+        var now = Date.now();
+        if (lastX !== null) {
+          var dx = e.clientX - lastX, dy = e.clientY - lastY;
+          if (Math.sqrt(dx * dx + dy * dy) < MIN_DIST || now - lastSpawn < MIN_GAP) return;
+        }
+        lastX = e.clientX;
+        lastY = e.clientY;
+        if (Math.random() < 0.5) {
+          lastSpawn = now;
+          spawn(e.clientX, e.clientY);
+        }
+      }, { passive: true });
+    })();
+  </script>
+
+</body>
+</html>
