@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geometry of Ordinal Representations in Language Models, Sharvi Tomar</title>
+  <meta name="description" content="How transformers encode bracket depth, indentation, table position, and magnitude, and why some of these tasks get a clean curved manifold while others don't.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400;1,8..60,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+
+  <!-- KaTeX, for the occasional equation. Remove this block on posts that don't need it. -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$', right: '$', display: false}
+      ]
+    });">
+  </script>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="wrap">
+      <nav class="site-nav">
+        <a class="wordmark" href="../index.html">Sharvi Tomar</a>
+        <span class="links">
+          <a href="index.html">Blog</a>
+          <a href="../index.html">Home</a>
+        </span>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+
+    <div class="post-header">
+      <p class="post-meta">11 June 2026</p>
+      <h1>Geometry of Ordinal Representations in Language Models</h1>
+    </div>
+
+    <article class="post">
+
+      <p>
+        A growing line of mechanistic interpretability work has shown that
+        language models sometimes represent simple counting variables, like
+        how many characters into a word you are, on a curved, roughly
+        one-dimensional manifold, with individual attention heads doing the
+        geometric work needed to move along that curve. It's a nice result,
+        but a narrow one: one task, on one kind of count. The question we
+        wanted to answer is how general this is. Is "represent it as a curve"
+        something models do for ordinal information in general, or is
+        character-counting a special case?
+      </p>
+
+      <h2>The setup</h2>
+
+      <p>
+        We picked four tasks that all share the same basic shape (each one
+        asks the model to track <em>where something is along an ordered
+        axis</em>) but that differ in how that position has to be computed:
+      </p>
+
+      <ul>
+        <li><strong>Bracket depth</strong>: how deeply nested the current token is inside brackets.</li>
+        <li><strong>Indentation</strong>: how many levels of indentation a line of code sits at.</li>
+        <li><strong>Table position</strong>: which row or column a token belongs to.</li>
+        <li><strong>Numeric magnitude</strong>: the relative size of a number mentioned in text.</li>
+      </ul>
+
+      <p>
+        We ran these across Gemma-2-2B, Gemma-2-9B, and Qwen3-4B, and looked
+        at the geometry of the resulting representations using probing and
+        dimensionality analysis, then checked which parts of that geometry
+        actually mattered using activation patching.
+      </p>
+
+      <h2>What we found</h2>
+
+      <p>
+        The dividing line that emerged wasn't about the four task <em>names</em>
+        so much as about <em>how</em> the ordinal variable can be computed.
+        For tasks where the value is essentially readable off the current
+        token and a short local context (bracket depth, indentation), we
+        consistently found tidy 1D curved manifolds, tiled by features that
+        each respond to a narrow window along the ordinal axis. It's a
+        "place-cell"-like code: think of each feature as a little bump
+        function,
+      </p>
+
+      $$
+      f_i(x) \approx g(x - c_i)
+      $$
+
+      <p>
+        centered at its own location $c_i$ along the curve, so that the
+        population of features together acts like a soft histogram of
+        position. (This equation is illustrative, not a quoted result from
+        the paper. Swap in your actual figure here.)
+      </p>
+
+      <p>
+        Tasks that instead require integrating information across multiple
+        positions, or pulling an ordinal value out of something semantic
+        (e.g. reading "twelve" and knowing it's bigger than "three"), didn't
+        get this treatment nearly as cleanly. Their representations were
+        higher-dimensional and far less manifold-like: less of a clean curve,
+        more of a tangle.
+      </p>
+
+      <h2>Why architecture matters</h2>
+
+      <p>
+        The amount of geometric "twisting" models do to build these curves
+        also varied a lot by architecture. Qwen3-4B showed 4&ndash;10&times;
+        stronger twisting than the Gemma models on indentation. And within
+        Qwen3-4B itself, that twisting wasn't applied uniformly: for
+        indentation, the twisted representation preserved ordinal order well
+        ($\rho \geq 0.77$), but for numeric magnitude it barely preserved
+        order at all ($\rho \leq 0.23$). Same model, same general mechanism
+        available, used selectively depending on the task.
+      </p>
+
+      <h2>Is it actually causal?</h2>
+
+      <p>
+        Geometry that just <em>correlates</em> with a variable isn't the same
+        as geometry the model actually <em>uses</em>. To check causality, we
+        patched activations within the identified manifold subspaces and
+        confirmed that doing so changes model behavior in the direction the
+        geometry predicts, across all four tasks. That's the piece that turns
+        "we found a pretty shape" into "this shape is part of how the model
+        computes the answer."
+      </p>
+
+      <h2>Open questions</h2>
+
+      <p>
+        A few things I'm still chewing on: whether "locally computable" is
+        really the right dividing line or just a proxy for something else;
+        how this connects to the broader manifold hypothesis in deep
+        learning; and whether training dynamics push models toward these
+        curved codes because they're efficient, or because they fall out of
+        something else entirely. More on this soon.
+      </p>
+
+      <!-- Add your poster image / key figures here, e.g.:
+      <figure>
+        <img src="../assets/manifold-figure-1.png" alt="Describe the figure">
+        <figcaption>Figure caption here.</figcaption>
+      </figure>
+      -->
+
+      <p class="post-meta">
+        Poster, Mechanistic Interpretability Workshop, ICML 2026, with
+        Saksham Bassi. <a href="https://openreview.net/forum?id=Hle1jgzG0f">Read on OpenReview</a>.
+      </p>
+
+    </article>
+
+    <div class="post-footer-nav">
+      <a href="index.html">&larr; Back to all posts</a>
+    </div>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      &copy; 2026 Sharvi Tomar.
+    </div>
+  </footer>
+
+</body>
+</html>
